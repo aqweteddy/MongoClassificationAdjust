@@ -1,0 +1,6 @@
+*.pth
+*.no
+*.ckpt
+__*/
+.*/
+Mongo_data/
