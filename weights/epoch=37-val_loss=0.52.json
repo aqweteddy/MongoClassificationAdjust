@@ -1,6 +1,6 @@
 {
     "data": {
-        "test_set": "./Mongo_data/dev",
+        "test_set": "./Mongo_data/test",
         "num_workers": 3,
         "test_batch_size": 4,
         "valid_size": 0.05,

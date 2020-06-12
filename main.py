@@ -1,17 +1,16 @@
-import torch
-import os
-from models.efficienet import efficientnet, EffNetTrainer
-from datasets.dataloader import make_test_loader
-# from config import hparams
-from tqdm import tqdm
 import json
 import logging
-from argparse import  ArgumentParser
+import os
+from argparse import ArgumentParser
 
+import pandas as pd
+import torch
+from tqdm import tqdm
 
-GPU_ID = '2'
+from datasets.dataloader import make_test_loader
+from models.efficienet import EffNetTrainer, efficientnet
+
 logger = logging.getLogger('Inferer')
-os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
 
 def load_config(config):
     with open(config) as f:
@@ -62,13 +61,15 @@ def get_weighted_result(results, weights):
 if __name__ == '__main__':
     # test_loader = make_test_loader(hparams)
     parser = ArgumentParser(prog='Inferer')
-    parser.add_argument('--gpu_id', type=int, nargs='?', default=1,
+    parser.add_argument('--gpuid', type=int, nargs='?', default=1,
                         help='set GPU id (default: 1)')
-    parser.add_argument('--weights',  type=float, nargs='+')
+    parser.add_argument('--weights',  type=float, nargs='+', help='weight for each model')
+    parser.add_argument('--to',  type=str, default='a.csv', help='output to csv file')
 
     args = parser.parse_args()
-    GPU_ID = args.gpu_id
     weights = args.weights
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpuid
+
 
     results = None # dim: num_samples, num_classes
     models_loaders = load_models_loaders('weights')
@@ -90,14 +91,20 @@ if __name__ == '__main__':
     value, idx = results.topk(1, dim=-1)
     idx = idx.squeeze(-1).tolist()
 
-    loader = make_test_loader(load_config('/home/dl406410029/mango_emsam/weights/efficient_b7_83.json'))
-    ans = []
-    for inp, target in loader:
-        ans.extend(target.tolist())
+    int_2_abc = {0:'A', 1:'B',2:'C'}
+    idx = [int_2_abc[i] for i in idx]
+
+    csv = pd.read_csv('test_example.csv')
+    csv['label'] = idx
+    csv.to_csv(args.to, index=False)
+
+    # loader = make_test_loader(load_config('/home/dl406410029/mango_emsam/weights/efficient_b7_83.json'))
+    # ans = []
+    # for inp, target in loader:
+    #     ans.extend(target.tolist())
     
-    correct = [1 for a, b in zip(idx, ans) if a == b]
-    print(f'{correct.count(1) / len(ans) * 100:.5f}')
-    print(f'{correct.count(1)} / {len(correct)}')
+    # correct = [1 for a, b in zip(idx, ans) if a == b]
+    # print(f'{correct.count(1) / len(ans) * 100:.5f}')
+    # print(f'{correct.count(1)} / {len(correct)}')
 
     # results = torch.tensor(results, requires_grad=False)
-    
